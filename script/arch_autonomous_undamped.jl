@@ -3,24 +3,22 @@ using MORFEInvariantManifold
 using MATLAB
 
 # Name of the mesh file. The one of this example is a COMSOL mesh format.
-# Meshes associated to the blade are used to benchmark the scalability of the code.
-mesh_file = "blade_1.mphtxt"
-# blade_1 is the smallest mesh, blade_9 is the biggest.
-# unzip blade_9 before using it
+mesh_file = "arch_I.mphtxt"
+
 
 ### DOMAINS INFO
 # domain_list is a vector that stores vectors of integers. 
 # Each subvector is a domain. Each integer is a COMSOL volume.
 domains_list = [                 
-[1]
+[1,2]
 ]
 
 ### MATERIAL 
 # define material properties
-material_name = "Titanium";
-density = 4400.0;
-young_modulus = 104e9;
-poisson_ratio = 0.3;
+material_name = "polysilicon";
+density = 2.32e-3;
+young_modulus = 160e3;
+poisson_ratio = 0.22;
 # add material to the library. 
 # Once added is saved and can be used without redefining it
 MORFE_add_material(material_name,density,young_modulus,poisson_ratio)
@@ -28,14 +26,14 @@ MORFE_add_material(material_name,density,young_modulus,poisson_ratio)
 # materials is an array of strings. 
 # materials[i] embeds the material associated to the domain defined in domains_list[j]
 materials = [
-"Titanium"
+"polysilicon"
 ]
 
 ### BOUNDARIES INFO
 # boundaries_list is a vector that stores vectors of integers.
 # Each subvector is a boundary. Each integer is a COMSOL face
 boundaries_list = [
-[5]
+[1,11]
 ]
 
 # constrained degrees of freedom of the surfaces defined above.
@@ -64,27 +62,26 @@ bc_vals = [
 # style: parametrisation style. 'g' graph, 'r' real normal form, 'c' complex normal form
 style = 'r'
 # max_order: maximum order of the asymptotic expansion of the autonomous problem
-max_order = 7
+max_order = 5
 
-odir, Cp, rdyn = MORFE_mech_autonomous(mesh_file,domains_list,materials,
+@time odir, Cp, rdyn = MORFE_mech_autonomous(mesh_file,domains_list,materials,
                                        boundaries_list,constrained_dof,bc_vals,
                                        α,β,
-                                       Φₗᵢₛₜ,style,max_order);
-
+                                       Φₗᵢₛₜ,style,max_order)
 # post proc
 ω₀ = imag(Cp[2].f[1,1]) # extract eigenfrequency
 T₀ = 2*pi /ω₀  # extract period
 #
-L = 1.02   # characteristic length of the vibration amplitude
+L = 6.4   # characteristic length of the vibration amplitude
 N = size(Cp[2].W)[1]; # number of physical DOFs 
 ϕ = maximum(abs.(Cp[2].W[Int(N/2)+1:N,1])) # maximum value of the mode
 
-small_amplitude = [0.0,0.01]
+small_amplitude = [0.0,0.3]
 time_integration_length = 2*T₀
 forward = true
-MaxNumPoints = 40
+MaxNumPoints = 90.0
 minstep = 1e-8
-maxstep = 0.15
+maxstep = 10.0
 initstep = 0.1
 ncol = 4.0
 ntst = 40.0
@@ -107,8 +104,8 @@ show_msession(ms) # do not close the pop up matlab windows until done with the a
 eval_string(ms,"
 figure(1);hold on
 plot(x,y,'DisplayName',strcat(\"Order \",num2str(max_order)))
-xlim([0.96,1.02])
-ylim([0.,0.14])
+xlim([0.98,1.04])
+ylim([0.,0.7631])
 xlabel('\$\\omega/\\omega_1\$','Interpreter','latex');
 ylabel('max[\$u_1 \\phi_1\$]/\$L\$','Interpreter','latex');
 legend()
